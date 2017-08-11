@@ -2,10 +2,12 @@ package chapi
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/WedgeNix/util"
@@ -184,8 +186,8 @@ func (ca *CaObj) Parent(ip bool) {
 	ca.isParent = ip
 }
 
-// GetCAData is main function for this package it calles Channel advisor for data
-func (ca *CaObj) GetCAData() <-chan []Product {
+// GetCAData is main function for this package it calles Channel advisor for data.
+func (ca *CaObj) GetCAData() []Product {
 	settings := settings{}
 	util.Load("channel_settings", &settings)
 	tick := time.Tick(rate)
@@ -234,5 +236,255 @@ func (ca *CaObj) GetCAData() <-chan []Product {
 		}
 
 	}
-	return fullResch
+	return <-fullResch
 }
+
+func commaSepProds(prods []Product) (csv [][]string) {
+	csv = append(csv, []string{
+		"Auction Title",
+		// "Inventory Number",
+		// "Item Create Date",
+		// "Height",
+		// "Length",
+		// "Width",
+		// "Weight",
+		// "UPC",
+		// "Description",
+		// "Brand",
+		// "Condition",
+		// "Seller Cost",
+		// "Buy It Now Price",
+		// "Picture URLs",
+		// "Received In Inventory",
+		// "Relationship Name",
+		// "Variation Parent SKU",
+		// "Labels",
+		// "Classification",
+		// "Attribute1Name",
+		// "Attribute1Value",
+		// "Attribute2Name",
+		// "Attribute2Value",
+		// "Attribute3Name",
+		// "Attribute3Value",
+		// "Attribute4Name",
+		// "Attribute4Value",
+		// "Attribute5Name",
+		// "Attribute5Value",
+		// "Attribute6Name",
+		// "Attribute6Value",
+		// "Attribute7Name",
+		// "Attribute7Value",
+		// "Attribute8Name",
+		// "Attribute8Value",
+		// "Attribute9Name",
+		// "Attribute9Value",
+		// "Attribute10Name",
+		// "Attribute10Value",
+		// "Attribute11Name",
+		// "Attribute11Value",
+		// "Attribute12Name",
+		// "Attribute12Value",
+		// "Attribute13Name",
+		// "Attribute13Value",
+		// "Attribute14Name",
+		// "Attribute14Value",
+		// "Attribute15Name",
+		// "Attribute15Value",
+		// "Attribute16Name",
+		// "Attribute16Value",
+		// "Attribute17Name",
+		// "Attribute17Value",
+		// "Attribute18Name",
+		// "Attribute18Value",
+		// "Attribute19Name",
+		// "Attribute19Value",
+		// "Attribute20Name",
+		// "Attribute20Value",
+		// "Attribute21Name",
+		// "Attribute21Value",
+		// "Attribute22Name",
+		// "Attribute22Value",
+		// "Attribute23Name",
+		// "Attribute23Value",
+		// "Attribute24Name",
+		// "Attribute24Value",
+		// "Attribute25Name",
+		// "Attribute25Value",
+		// "Attribute26Name",
+		// "Attribute26Value",
+		// "Attribute27Name",
+		// "Attribute27Value",
+	})
+
+	for _, prod := range prods {
+		csv = append(csv, []string{
+			prod.Title,
+			// 	prod.InventoryNumber,
+			// 	prod.ItemCreateDate,
+			// 	prod.Height,
+			// 	prod.Length,
+			// 	prod.Width,
+			// 	prod.Weight,
+			// 	prod.UPC,
+			// 	prod.Description,
+			// 	prod.Brand,
+			// 	prod.Condition,
+			// 	prod.SellerCost,
+			// 	prod.BuyItNowPrice,
+			// 	prod.PictureURLs,
+			// 	prod.ReceivedInInventory,
+			// 	prod.RelationshipName,
+			// 	prod.VariationParentSKU,
+			// 	prod.Labels,
+			// 	prod.Classification,
+			// 	prod.Attribute1Name,
+			// 	prod.Attribute1Value,
+			// 	prod.Attribute2Name,
+			// 	prod.Attribute2Value,
+			// 	prod.Attribute3Name,
+			// 	prod.Attribute3Value,
+			// 	prod.Attribute4Name,
+			// 	prod.Attribute4Value,
+			// 	prod.Attribute5Name,
+			// 	prod.Attribute5Value,
+			// 	prod.Attribute6Name,
+			// 	prod.Attribute6Value,
+			// 	prod.Attribute7Name,
+			// 	prod.Attribute7Value,
+			// 	prod.Attribute8Name,
+			// 	prod.Attribute8Value,
+			// 	prod.Attribute9Name,
+			// 	prod.Attribute9Value,
+			// 	prod.Attribute10Name,
+			// 	prod.Attribute10Value,
+			// 	prod.Attribute11Name,
+			// 	prod.Attribute11Value,
+			// 	prod.Attribute12Name,
+			// 	prod.Attribute12Value,
+			// 	prod.Attribute13Name,
+			// 	prod.Attribute13Value,
+			// 	prod.Attribute14Name,
+			// 	prod.Attribute14Value,
+			// 	prod.Attribute15Name,
+			// 	prod.Attribute15Value,
+			// 	prod.Attribute16Name,
+			// 	prod.Attribute16Value,
+			// 	prod.Attribute17Name,
+			// 	prod.Attribute17Value,
+			// 	prod.Attribute18Name,
+			// 	prod.Attribute18Value,
+			// 	prod.Attribute19Name,
+			// 	prod.Attribute19Value,
+			// 	prod.Attribute20Name,
+			// 	prod.Attribute20Value,
+			// 	prod.Attribute21Name,
+			// 	prod.Attribute21Value,
+			// 	prod.Attribute22Name,
+			// 	prod.Attribute22Value,
+			// 	prod.Attribute23Name,
+			// 	prod.Attribute23Value,
+			// 	prod.Attribute24Name,
+			// 	prod.Attribute24Value,
+			// 	prod.Attribute25Name,
+			// 	prod.Attribute25Value,
+			// 	prod.Attribute26Name,
+			// 	prod.Attribute26Value,
+			// 	prod.Attribute27Name,
+			// 	prod.Attribute27Value,
+		})
+	}
+
+	return
+}
+
+// CSVify turns products into a binary CSV.
+func CSVify(prods []Product, name string) (*os.File, error) {
+	f, err := os.Create(name + ".csv")
+	if err != nil {
+		return f, err
+	}
+	defer f.Close()
+
+	csvw := csv.NewWriter(f)
+	err = csvw.WriteAll(commaSepProds(prods))
+	if err != nil {
+		return f, err
+	}
+	csvw.Flush()
+
+	return f, nil
+}
+
+// Auction Title
+// Inventory Number
+// Item Create Date
+// Height
+// Length
+// Width
+// Weight
+// UPC
+// Description
+// Brand
+// Condition
+// Seller Cost
+// Buy It Now Price
+// Picture URLs
+// Received In Inventory
+// Relationship Name
+// Variation Parent SKU
+// Labels
+// Classification
+// Attribute1Name
+// Attribute1Value
+// Attribute2Name
+// Attribute2Value
+// Attribute3Name
+// Attribute3Value
+// Attribute4Name
+// Attribute4Value
+// Attribute5Name
+// Attribute5Value
+// Attribute6Name
+// Attribute6Value
+// Attribute7Name
+// Attribute7Value
+// Attribute8Name
+// Attribute8Value
+// Attribute9Name
+// Attribute9Value
+// Attribute10Name
+// Attribute10Value
+// Attribute11Name
+// Attribute11Value
+// Attribute12Name
+// Attribute12Value
+// Attribute13Name
+// Attribute13Value
+// Attribute14Name
+// Attribute14Value
+// Attribute15Name
+// Attribute15Value
+// Attribute16Name
+// Attribute16Value
+// Attribute17Name
+// Attribute17Value
+// Attribute18Name
+// Attribute18Value
+// Attribute19Name
+// Attribute19Value
+// Attribute20Name
+// Attribute20Value
+// Attribute21Name
+// Attribute21Value
+// Attribute22Name
+// Attribute22Value
+// Attribute23Name
+// Attribute23Value
+// Attribute24Name
+// Attribute24Value
+// Attribute25Name
+// Attribute25Value
+// Attribute26Name
+// Attribute26Value
+// Attribute27Name
+// Attribute27Value
