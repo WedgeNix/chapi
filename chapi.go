@@ -227,7 +227,6 @@ func (ca *CaObj) GetCAData() []Product {
 			fullRes = data.Value
 		}
 		link = data.NextLink
-		util.Log(link)
 
 		if link == "" {
 			util.Log("ending")
