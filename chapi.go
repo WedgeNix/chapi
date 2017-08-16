@@ -1,13 +1,17 @@
 package chapi
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
-	"os"
+	"strconv"
 	"time"
 
 	"github.com/WedgeNix/util"
@@ -187,12 +191,15 @@ func (ca *CaObj) Parent(ip bool) {
 }
 
 // GetCAData is main function for this package it calles Channel advisor for data.
-func (ca *CaObj) GetCAData() []Product {
-	settings := settings{}
-	util.Load("channel_settings", &settings)
-	tick := time.Tick(rate)
-
+func (ca *CaObj) GetCAData() ([]Product, error) {
+	sets := settings{}
+	util.Load("channel_settings", &sets)
+	emptySets := settings{}
 	var fullRes []Product
+	if sets == emptySets {
+		return fullRes, errors.New("empty settings")
+	}
+	tick := time.Tick(rate)
 	link := ""
 	end := make(chan bool)
 	fullResch := make(chan []Product)
@@ -205,10 +212,10 @@ func (ca *CaObj) GetCAData() []Product {
 		<-tick
 		data := chaData{}
 		if link == "" {
-			vals := url.Values(make(map[string][]string))
-			filter := fmt.Sprintf("%s AND IsParent eq %v", settings.Filters, ca.isParent)
+			vals := url.Values{}
+			filter := fmt.Sprintf("%s AND IsParent eq %v", sets.Filters, ca.isParent)
 			vals.Set("$filter", filter)
-			vals.Set("$expand", settings.Expand)
+			vals.Set("$expand", sets.Expand)
 			link = "https://api.channeladvisor.com/v1/Products?" + vals.Encode()
 		}
 		util.Log("Starting call")
@@ -235,7 +242,32 @@ func (ca *CaObj) GetCAData() []Product {
 		}
 
 	}
-	return <-fullResch
+	return <-fullResch, nil
+}
+
+func (ca CaObj) save(r io.Reader, region int) error {
+	if region == 0 {
+		return errors.New("region not set")
+	}
+
+	req, err := http.NewRequest(
+		"POST",
+		`https://api.channeladvisor.com/v1/ProductUpload?profileid=`+strconv.Itoa(region),
+		r,
+	)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "text/csv")
+	resp, err := ca.client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode > 299 {
+		return errors.New(resp.Status)
+	}
+
+	return nil
 }
 
 func commaSepProds(prods []Product) (csv [][]string) {
@@ -397,93 +429,23 @@ func commaSepProds(prods []Product) (csv [][]string) {
 }
 
 // CSVify turns products into a binary CSV.
-func CSVify(prods []Product, name string) (*os.File, error) {
-	f, err := os.Create(name + ".csv")
-	if err != nil {
-		return f, err
-	}
-	defer f.Close()
+func (ca CaObj) CSVify(prods []Product, region int) error {
+	buf := new(bytes.Buffer)
 
-	csvw := csv.NewWriter(f)
-	err = csvw.WriteAll(commaSepProds(prods))
+	csv := csv.NewWriter(buf)
+	err := csv.WriteAll(commaSepProds(prods))
 	if err != nil {
-		return f, err
+		panic(err)
 	}
-	csvw.Flush()
+	csv.Flush()
 
-	return f, nil
+	b := buf.Bytes()
+	buf.Reset()
+
+	err = binary.Write(buf, binary.BigEndian, b)
+	if err != nil {
+		panic(err)
+	}
+
+	return ca.save(buf, region)
 }
-
-// Auction Title
-// Inventory Number
-// Item Create Date
-// Height
-// Length
-// Width
-// Weight
-// UPC
-// Description
-// Brand
-// Condition
-// Seller Cost
-// Buy It Now Price
-// Picture URLs
-// Received In Inventory
-// Relationship Name
-// Variation Parent SKU
-// Labels
-// Classification
-// Attribute1Name
-// Attribute1Value
-// Attribute2Name
-// Attribute2Value
-// Attribute3Name
-// Attribute3Value
-// Attribute4Name
-// Attribute4Value
-// Attribute5Name
-// Attribute5Value
-// Attribute6Name
-// Attribute6Value
-// Attribute7Name
-// Attribute7Value
-// Attribute8Name
-// Attribute8Value
-// Attribute9Name
-// Attribute9Value
-// Attribute10Name
-// Attribute10Value
-// Attribute11Name
-// Attribute11Value
-// Attribute12Name
-// Attribute12Value
-// Attribute13Name
-// Attribute13Value
-// Attribute14Name
-// Attribute14Value
-// Attribute15Name
-// Attribute15Value
-// Attribute16Name
-// Attribute16Value
-// Attribute17Name
-// Attribute17Value
-// Attribute18Name
-// Attribute18Value
-// Attribute19Name
-// Attribute19Value
-// Attribute20Name
-// Attribute20Value
-// Attribute21Name
-// Attribute21Value
-// Attribute22Name
-// Attribute22Value
-// Attribute23Name
-// Attribute23Value
-// Attribute24Name
-// Attribute24Value
-// Attribute25Name
-// Attribute25Value
-// Attribute26Name
-// Attribute26Value
-// Attribute27Name
-// Attribute27Value
