@@ -192,13 +192,8 @@ func (ca *CaObj) Parent(ip bool) {
 
 // GetCAData is main function for this package it calles Channel advisor for data.
 func (ca *CaObj) GetCAData() ([]Product, error) {
-	sets := settings{}
-	util.Load("channel_settings", &sets)
-	emptySets := settings{}
 	var fullRes []Product
-	if sets == emptySets {
-		return fullRes, errors.New("empty settings")
-	}
+
 	tick := time.Tick(rate)
 	link := ""
 	end := make(chan bool)
@@ -213,9 +208,12 @@ func (ca *CaObj) GetCAData() ([]Product, error) {
 		data := chaData{}
 		if link == "" {
 			vals := url.Values{}
-			filter := fmt.Sprintf("%s AND IsParent eq %v", sets.Filters, ca.isParent)
+			filter := fmt.Sprintf(
+				"%s AND IsParent eq %v",
+				"Labels/Any (c: c/Name eq 'Foreign Accounts') AND TotalAvailableQuantity gt 0 AND ProfileID eq 32001166",
+				ca.isParent)
 			vals.Set("$filter", filter)
-			vals.Set("$expand", sets.Expand)
+			vals.Set("$expand", "Attributes,Labels,Images")
 			link = "https://api.channeladvisor.com/v1/Products?" + vals.Encode()
 		}
 		util.Log("Starting call")
