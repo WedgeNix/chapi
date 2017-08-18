@@ -205,7 +205,7 @@ func (ca *CaObj) GetCAData() ([]Product, error) {
 	workers <- 2
 	workers <- 3
 	workers <- 4
-	workers <- 5
+	workers <- 6
 
 	working := sync.WaitGroup{}
 
