@@ -7,11 +7,12 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/WedgeNix/util"
@@ -192,55 +193,82 @@ func (ca *CaObj) Parent(ip bool) {
 
 // GetCAData is main function for this package it calles Channel advisor for data.
 func (ca *CaObj) GetCAData() ([]Product, error) {
-	var fullRes []Product
+	tick := time.Tick(rate / 5)
+	prods := []Product{}
+	prodsLock := sync.Mutex{}
+	skip := 0
 
-	tick := time.Tick(rate)
-	link := ""
-	end := make(chan bool)
-	fullResch := make(chan []Product)
+	done := make(chan bool)
+	wait := make(chan bool)
+	workers := make(chan int, 5)
+	workers <- 1
+	workers <- 2
+	workers <- 3
+	workers <- 4
+	workers <- 5
+
+	working := sync.WaitGroup{}
+
 	go func() {
-		<-end
-		util.Log("Return")
-		fullResch <- fullRes
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				wait <- true
+			}
+		}
 	}()
-	for {
+
+	for id := range workers {
 		<-tick
-		data := chaData{}
-		if link == "" {
+
+		working.Add(1)
+		go func(id int, skip int) {
+
 			vals := url.Values{}
-			filter := fmt.Sprintf(
-				"%s AND IsParent eq %v",
-				"Labels/Any (c: c/Name eq 'Foreign Accounts') AND TotalAvailableQuantity gt 0 AND ProfileID eq 32001166",
-				ca.isParent)
+			filter := "Labels/Any (c: c/Name eq 'Foreign Accounts') AND TotalAvailableQuantity gt 0 AND ProfileID eq 32001166"
+			if ca.isParent {
+				filter += "AND IsParent eq true"
+			}
 			vals.Set("$filter", filter)
 			vals.Set("$expand", "Attributes,Labels,Images")
-			link = "https://api.channeladvisor.com/v1/Products?" + vals.Encode()
-		}
-		util.Log("Starting call")
-		util.Log(link)
-		res, err := ca.client.Get(link)
-		util.E(err)
-		util.Log("End of call")
+			vals.Set("$skip", strconv.Itoa(skip))
+			link := "https://api.channeladvisor.com/v1/Products?" + vals.Encode()
+			util.Log(link)
 
-		defer res.Body.Close()
-		json.NewDecoder(res.Body).Decode(&data)
-		util.E(err)
+			resp, err := ca.client.Get(link)
+			if err != nil {
+				log.Fatalln(err)
+			}
 
-		if len(fullRes) > 0 {
-			fullRes = append(fullRes, data.Value...)
-		} else {
-			fullRes = data.Value
-		}
-		link = data.NextLink
+			data := &chaData{}
+			err = json.NewDecoder(resp.Body).Decode(data)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			defer resp.Body.Close()
 
-		if link == "" {
-			util.Log("ending")
-			end <- true
-			break
-		}
+			prodsLock.Lock()
+			prods = append(prods, data.Value...)
+			prodsLock.Unlock()
 
+			working.Done()
+
+			<-wait
+			if len(data.NextLink) > 0 {
+				workers <- id
+			} else {
+				done <- true
+				close(workers)
+			}
+		}(id, skip)
+
+		skip += 100
 	}
-	return <-fullResch, nil
+	working.Wait()
+
+	return prods, nil
 }
 
 func (ca CaObj) save(r io.Reader, region int) error {
