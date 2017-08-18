@@ -205,7 +205,7 @@ func (ca *CaObj) GetCAData() ([]Product, error) {
 	workers <- 2
 	workers <- 3
 	workers <- 4
-	workers <- 8
+	workers <- 5
 
 	working := sync.WaitGroup{}
 
@@ -331,8 +331,7 @@ func commaSepProds(prods []Product) (csv [][]string) {
 		// "Attribute6Value",
 		// "Attribute7Name",
 		// "Attribute7Value",
-		// "Attribute8Name",
-		// "Attribute8Value",
+		// "Attribute5Value",
 		// "Attribute9Name",
 		// "Attribute9Value",
 		// "Attribute10Name",
