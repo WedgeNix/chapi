@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -14,8 +15,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/WedgeNix/util"
 )
 
 const (
@@ -181,8 +180,7 @@ func New() (*CaObj, error) {
 	}
 	client := conf.Client(ctx, tok)
 	return &CaObj{
-		client:   client,
-		isParent: true,
+		client: client,
 	}, nil
 }
 
@@ -235,7 +233,7 @@ func (ca *CaObj) GetCAData() ([]Product, error) {
 			vals.Set("$expand", "Attributes,Labels,Images")
 			vals.Set("$skip", strconv.Itoa(skip))
 			link := "https://api.channeladvisor.com/v1/Products?" + vals.Encode()
-			util.Log(link)
+			fmt.Print(`[skip`, skip, `]`)
 
 			resp, err := ca.client.Get(link)
 			if err != nil {
@@ -453,16 +451,16 @@ func commaSepProds(prods []Product) (csv [][]string) {
 	return
 }
 
-// CSVify turns products into a binary CSV.
-func (ca CaObj) CSVify(prods []Product, region int) error {
+// SendBinaryCSV turns products into a binary CSV.
+func (ca CaObj) SendBinaryCSV(csvLayout [][]string, region int) error {
 	buf := new(bytes.Buffer)
 
-	csv := csv.NewWriter(buf)
-	err := csv.WriteAll(commaSepProds(prods))
+	w := csv.NewWriter(buf)
+	err := w.WriteAll(csvLayout)
 	if err != nil {
 		panic(err)
 	}
-	csv.Flush()
+	w.Flush()
 
 	b := buf.Bytes()
 	buf.Reset()
