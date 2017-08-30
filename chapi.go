@@ -192,7 +192,7 @@ func (ca *CaObj) Parent(ip bool) {
 }
 
 // GetCAData is main function for this package it calles Channel advisor for data.
-func (ca *CaObj) GetCAData() ([]Product, error) {
+func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 	tick := time.Tick(rate / 5)
 	prods := []Product{}
 	prodsLock := sync.Mutex{}
@@ -224,13 +224,14 @@ func (ca *CaObj) GetCAData() ([]Product, error) {
 		<-tick
 
 		working.Add(1)
-		go func(id int, skip int) {
+		go func(id int, skip int, date time.Time) {
 
 			vals := url.Values{}
 			filter := "Labels/Any (c: c/Name eq 'Foreign Accounts') AND TotalAvailableQuantity gt 0 AND ProfileID eq 32001166"
 			if ca.isParent {
 				filter += "AND IsParent eq true"
 			}
+			filter += "AND CreateDateUtc ge " + date.Format("2006-01-02")
 			vals.Set("$filter", filter)
 			vals.Set("$expand", "Attributes,Labels,Images")
 			vals.Set("$skip", strconv.Itoa(skip))
@@ -262,7 +263,7 @@ func (ca *CaObj) GetCAData() ([]Product, error) {
 				done <- true
 				close(workers)
 			}
-		}(id, skip)
+		}(id, skip, date)
 
 		skip += 100
 	}
