@@ -12,9 +12,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strconv"
-	"strings"
+	"sync"
 	"time"
 )
 
@@ -192,48 +191,81 @@ func (ca *CaObj) Parent(ip bool) {
 
 // GetCAData is main function for this package it calles Channel advisor for data.
 func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
-	tick := time.NewTicker(rate)
-	defer tick.Stop()
+	tick := time.Tick(rate / 5)
 	prods := []Product{}
-	skip := "0"
-	skipRegex := regexp.MustCompile(`\bskip=[0-9]+\b`)
+	prodsLock := sync.Mutex{}
+	skip := 0
 
-	for {
-		vals := url.Values{}
-		filter := "Labels/Any (c: c/Name eq 'Foreign Accounts') AND TotalAvailableQuantity gt 0 AND ProfileID eq 32001166"
-		if ca.isParent {
-			filter += "AND IsParent eq true"
+	done := make(chan bool)
+	wait := make(chan bool)
+	workers := make(chan int, 5)
+	workers <- 1
+	workers <- 2
+	workers <- 3
+	workers <- 4
+	workers <- 5
+
+	working := sync.WaitGroup{}
+
+	go func() {
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				wait <- true
+			}
 		}
-		filter += "AND CreateDateUtc ge " + date.Format("2006-01-02")
-		vals.Set("$filter", filter)
-		vals.Set("$expand", "Attributes,Labels,Images")
-		vals.Set("$skip", skip)
-		link := "https://api.channeladvisor.com/v1/Products?" + vals.Encode()
-		fmt.Println(`[skip`, skip, `]`)
+	}()
 
-		resp, err := ca.client.Get(link)
-		if err != nil {
-			log.Fatalln(err)
-		}
+	for id := range workers {
+		<-tick
 
-		data := &chaData{}
-		err = json.NewDecoder(resp.Body).Decode(data)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		defer resp.Body.Close()
+		working.Add(1)
+		go func(id int, skip int, date time.Time) {
 
-		prods = append(prods, data.Value...)
+			vals := url.Values{}
+			filter := "Labels/Any (c: c/Name eq 'Foreign Accounts') AND TotalAvailableQuantity gt 0 AND ProfileID eq 32001166"
+			if ca.isParent {
+				filter += "AND IsParent eq true"
+			}
+			filter += "AND CreateDateUtc ge " + date.Format("2006-01-02")
+			vals.Set("$filter", filter)
+			vals.Set("$expand", "Attributes,Labels,Images")
+			vals.Set("$skip", strconv.Itoa(skip))
+			link := "https://api.channeladvisor.com/v1/Products?" + vals.Encode()
+			fmt.Println(`[skip`, skip, `]`)
 
-		if len(data.NextLink) == 0 {
-			break
-		}
+			resp, err := ca.client.Get(link)
+			if err != nil {
+				log.Fatalln(err)
+			}
 
-		s := skipRegex.FindString(data.NextLink)
-		skip = s[strings.Index(s, "=")+1:]
+			data := &chaData{}
+			err = json.NewDecoder(resp.Body).Decode(data)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			defer resp.Body.Close()
 
-		<-tick.C
+			prodsLock.Lock()
+			prods = append(prods, data.Value...)
+			prodsLock.Unlock()
+
+			working.Done()
+
+			<-wait
+			if len(data.NextLink) > 0 {
+				workers <- id
+			} else {
+				done <- true
+				close(workers)
+			}
+		}(id, skip, date)
+
+		skip += 100000
 	}
+	working.Wait()
 
 	return prods, nil
 }
