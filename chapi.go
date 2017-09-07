@@ -211,7 +211,6 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 		for {
 			select {
 			case <-done:
-				fmt.Println("done was hit!!!!!!!!!")
 				return
 			default:
 				wait <- true
@@ -241,8 +240,6 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 			if err != nil {
 				log.Fatalln(err)
 			}
-			// if skip == 0 {
-			// }
 
 			data := &chaData{}
 			err = json.NewDecoder(resp.Body).Decode(data)
@@ -250,7 +247,6 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 				log.Fatalln(err)
 			}
 			defer resp.Body.Close()
-			fmt.Println("link:" + data.NextLink)
 
 			prodsLock.Lock()
 			prods = append(prods, data.Value...)
@@ -267,7 +263,7 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 			}
 		}(id, skip, date)
 
-		skip += 100000
+		skip += 100
 	}
 	fmt.Println("working.Wait()...")
 	working.Wait()
