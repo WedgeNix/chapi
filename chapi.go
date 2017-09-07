@@ -266,7 +266,9 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 
 		skip += 100000
 	}
+	fmt.Println("working.Wait()...")
 	working.Wait()
+	fmt.Println("working.Wait() !")
 
 	return prods, nil
 }
