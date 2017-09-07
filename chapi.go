@@ -234,7 +234,7 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 			vals.Set("$expand", "Attributes,Labels,Images")
 			vals.Set("$skip", strconv.Itoa(skip))
 			link := "https://api.channeladvisor.com/v1/Products?" + vals.Encode()
-			fmt.Print(`[skip`, skip, `]`)
+			fmt.Println(`[skip`, skip, `]`)
 
 			resp, err := ca.client.Get(link)
 			if err != nil {
@@ -294,7 +294,6 @@ func (ca CaObj) save(r io.Reader, region int) error {
 
 	return nil
 }
-
 
 // SendBinaryCSV turns products into a binary CSV.
 func (ca CaObj) SendBinaryCSV(csvLayout [][]string, region int) error {
