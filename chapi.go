@@ -211,6 +211,7 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 		for {
 			select {
 			case <-done:
+				fmt.Println("done was hit!!!!!!!!!")
 				return
 			default:
 				wait <- true
