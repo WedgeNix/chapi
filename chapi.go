@@ -246,7 +246,7 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 			if err != nil {
 				log.Fatalln(err)
 			}
-			defer resp.Body.Close()
+			resp.Body.Close()
 
 			prodsLock.Lock()
 			prods = append(prods, data.Value...)
