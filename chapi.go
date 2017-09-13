@@ -229,7 +229,14 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 			if ca.isParent {
 				filter += "AND IsParent eq true"
 			}
-			filter += "AND CreateDateUtc ge " + date.Format("2006-01-02")
+
+			start := date.Format("2006-01-02")
+			null := time.Time{}
+
+			if null.Format("2006-01-02") != start {
+				filter += "AND CreateDateUtc ge " + start
+			}
+
 			vals.Set("$filter", filter)
 			vals.Set("$expand", "Attributes,Labels,Images")
 			vals.Set("$skip", strconv.Itoa(skip))
