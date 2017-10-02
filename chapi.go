@@ -225,7 +225,7 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 		go func(id int, skip int, date time.Time) {
 
 			vals := url.Values{}
-			filter := "Labels/Any (c: c/Name eq 'Foreign Accounts') AND TotalAvailableQuantity gt 0 AND ProfileID eq 32001166"
+			filter := "Labels/Any (c: c/Name eq 'Foreign Accounts') AND TotalAvailableQuantity gt 0 AND ProfileID eq 32001166 AND Sku eq 'MPWD-137-S'"
 			if ca.isParent {
 				filter += "AND IsParent eq true"
 			}
