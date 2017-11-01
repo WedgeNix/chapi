@@ -237,7 +237,7 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 			if null.Format("2006-01-02") != start {
 				filter += "AND CreateDateUtc ge " + start
 			}
-
+			fmt.Println(filter)
 			vals.Set("$filter", filter)
 			vals.Set("$expand", "Attributes,Labels,Images")
 			vals.Set("$skip", strconv.Itoa(skip))
