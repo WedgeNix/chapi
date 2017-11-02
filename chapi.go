@@ -13,7 +13,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -295,6 +294,10 @@ func (ca CaObj) save(r io.Reader, region int) error {
 		return err
 	}
 	req.Header.Add("Content-Type", "text/csv")
+
+	log.Println(req.Header)
+	log.Println(req.URL)
+
 	resp, err := ca.client.Do(req)
 	if err != nil {
 		return err
@@ -303,33 +306,29 @@ func (ca CaObj) save(r io.Reader, region int) error {
 		return errors.New(resp.Status)
 	}
 
+	log.Println(resp.Status)
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Println(string(b))
+
 	return nil
 }
 
 // SendBinaryCSV turns products into a binary CSV.
 func (ca CaObj) SendBinaryCSV(csvLayout [][]string, region int) error {
-	f, err := os.Create("API.csv")
-	if err != nil {
-		return err
-	}
+	buf := new(bytes.Buffer)
 
-	w := csv.NewWriter(f)
-	err = w.WriteAll(csvLayout)
+	w := csv.NewWriter(buf)
+	err := w.WriteAll(csvLayout)
 	if err != nil {
 		return err
 	}
 	w.Flush()
-	f.Close()
 
-	// b := buf.Bytes()
-	b, err := ioutil.ReadFile("API.csv")
-	if err != nil {
-		return err
-	}
-	// buf.Reset()
-	log.Println(".csv len:", len(bytes.Split(b, []byte("\n"))))
-
-	buf := new(bytes.Buffer)
+	b := buf.Bytes()
+	buf.Reset()
 
 	err = binary.Write(buf, binary.BigEndian, b)
 	if err != nil {
