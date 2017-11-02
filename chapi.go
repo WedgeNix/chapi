@@ -9,12 +9,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/WedgeNix/util"
 )
 
 const (
@@ -306,21 +310,39 @@ func (ca CaObj) save(r io.Reader, region int) error {
 
 // SendBinaryCSV turns products into a binary CSV.
 func (ca CaObj) SendBinaryCSV(csvLayout [][]string, region int) error {
-	buf := new(bytes.Buffer)
-
-	w := csv.NewWriter(buf)
-	err := w.WriteAll(csvLayout)
+	f, err := os.Create("API.csv")
 	if err != nil {
-		panic(err)
+		return err
+	}
+
+	w := csv.NewWriter(f)
+	err = w.WriteAll(csvLayout)
+	if err != nil {
+		return err
 	}
 	w.Flush()
+	f.Close()
 
-	b := buf.Bytes()
-	buf.Reset()
+	email := util.EmailLogin{
+		User: util.MustGetenv("COM_EMAIL_USER"),
+		Pass: util.MustGetenv("COM_EMAIL_PASS"),
+		SMTP: util.MustGetenv("COM_EMAIL_SMTP"),
+	}
+	email.Email([]string{"alexander.w.matulionis@gmail.com"}, "[The CSV]", "It's below.", "API.csv")
+	email.Stop()
+
+	// b := buf.Bytes()
+	b, err := ioutil.ReadFile("API.csv")
+	if err != nil {
+		return err
+	}
+	// buf.Reset()
+
+	buf := new(bytes.Buffer)
 
 	err = binary.Write(buf, binary.BigEndian, b)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return ca.save(buf, region)
