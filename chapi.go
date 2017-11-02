@@ -329,7 +329,6 @@ func (ca CaObj) SendBinaryCSV(csvLayout [][]string, region int) error {
 		SMTP: util.MustGetenv("COM_EMAIL_SMTP"),
 	}
 	email.Email([]string{"alexander.w.matulionis@gmail.com"}, "[The CSV]", "It's below.", "API.csv")
-	email.Stop()
 
 	// b := buf.Bytes()
 	b, err := ioutil.ReadFile("API.csv")
