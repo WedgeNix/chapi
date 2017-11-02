@@ -17,9 +17,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/WedgeNix/util"
-	load "github.com/mrmiguu/Loading"
 )
 
 const (
@@ -324,21 +321,13 @@ func (ca CaObj) SendBinaryCSV(csvLayout [][]string, region int) error {
 	w.Flush()
 	f.Close()
 
-	email := util.EmailLogin{
-		User: util.MustGetenv("COM_EMAIL_USER"),
-		Pass: util.MustGetenv("COM_EMAIL_PASS"),
-		SMTP: util.MustGetenv("COM_EMAIL_SMTP"),
-	}
-	done := load.New("emailing")
-	email.Email([]string{"alexander.w.matulionis@gmail.com"}, "[The CSV]", "It's below.", "API.csv")
-	done <- true
-
 	// b := buf.Bytes()
 	b, err := ioutil.ReadFile("API.csv")
 	if err != nil {
 		return err
 	}
 	// buf.Reset()
+	log.Println(".csv len:", len(bytes.Split(b, []byte("\n"))))
 
 	buf := new(bytes.Buffer)
 
