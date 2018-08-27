@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -293,6 +294,10 @@ func (ca CaObj) save(r io.Reader, region int) error {
 		return err
 	}
 	req.Header.Add("Content-Type", "text/csv")
+
+	log.Println(req.Header)
+	log.Println(req.URL)
+
 	resp, err := ca.client.Do(req)
 	if err != nil {
 		return err
@@ -300,6 +305,13 @@ func (ca CaObj) save(r io.Reader, region int) error {
 	if resp.StatusCode > 299 {
 		return errors.New(resp.Status)
 	}
+
+	log.Println(resp.Status)
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Println(string(b))
 
 	return nil
 }
@@ -311,7 +323,7 @@ func (ca CaObj) SendBinaryCSV(csvLayout [][]string, region int) error {
 	w := csv.NewWriter(buf)
 	err := w.WriteAll(csvLayout)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	w.Flush()
 
@@ -320,7 +332,7 @@ func (ca CaObj) SendBinaryCSV(csvLayout [][]string, region int) error {
 
 	err = binary.Write(buf, binary.BigEndian, b)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	return ca.save(buf, region)
