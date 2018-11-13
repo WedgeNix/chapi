@@ -170,6 +170,7 @@ type chaData struct {
 type CaObj struct {
 	client   *http.Client
 	isParent bool
+	Xmas     bool
 }
 
 // New creates object for api call to Channel Advisor
@@ -227,7 +228,9 @@ func (ca *CaObj) GetCAData(date time.Time) ([]Product, error) {
 
 			vals := url.Values{}
 			filter := "Labels/Any (c: c/Name eq 'Foreign Accounts') AND TotalAvailableQuantity gt 0 AND ProfileID eq 32001166" // AND Sku eq 'MPWD-137-S'"
-			// filter += "AND Brand eq 'Ugly Christmas Sweater'"
+			if ca.Xmas {
+				filter += "AND Brand eq 'Ugly Christmas Sweater'"
+			}
 			if ca.isParent {
 				filter += "AND IsParent eq true"
 			}
